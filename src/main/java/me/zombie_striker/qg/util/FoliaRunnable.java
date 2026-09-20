@@ -198,11 +198,20 @@ public abstract class FoliaRunnable implements Runnable {
 
     /** Run on an entity's regional thread (falls back to global on Bukkit). */
     public static void runEntityTask(Plugin plugin, Entity entity, Runnable task) {
+        runEntityTask(plugin, entity, task, null);
+    }
+
+    /** Run on an entity's regional thread (falls back to global on Bukkit). */
+    public static void runEntityTask(Plugin plugin, Entity entity, Runnable task, Runnable retired) {
         if (!IS_FOLIA) {
+            if (retired != null && !entity.isValid()) {
+                retired.run();
+                return;
+            }
             Bukkit.getScheduler().runTask(plugin, task);
             return;
         }
-        invokeEntity(plugin, entity, task, 1, -1);
+        invokeEntity(plugin, entity, task, retired, 1, -1);
     }
 
     /** Run delayed on an entity's regional thread. */
@@ -211,7 +220,27 @@ public abstract class FoliaRunnable implements Runnable {
             Bukkit.getScheduler().runTaskLater(plugin, task, delay);
             return;
         }
-        invokeEntity(plugin, entity, task, Math.max(1, delay), -1);
+        invokeEntity(plugin, entity, task, null, Math.max(1, delay), -1);
+    }
+
+    /** Run on a location's regional thread (falls back to global on Bukkit). */
+    public static void runRegionTask(Plugin plugin, Location location, Runnable task) {
+        new FoliaRunnable() {
+            @Override
+            public void run() {
+                task.run();
+            }
+        }.runTask(plugin, location);
+    }
+
+    /** Run delayed on a location's regional thread (falls back to global on Bukkit). */
+    public static void runRegionTaskLater(Plugin plugin, Location location, Runnable task, long delay) {
+        new FoliaRunnable() {
+            @Override
+            public void run() {
+                task.run();
+            }
+        }.runTaskLater(plugin, location, delay);
     }
 
     // ===================== Private scheduling implementations =====================
@@ -220,28 +249,28 @@ public abstract class FoliaRunnable implements Runnable {
         Consumer<Object> consumer = t -> { setTask(t); if (!cancelled) run(); };
         Object st = invokeGlobal(plugin, consumer, delay, period);
         if (st != null) setTask(st);
-        return new FoliaTaskWrapper(st);
+        return new FoliaTaskWrapper(plugin, true, st);
     }
 
     private BukkitTask scheduleAsync(Plugin plugin, long delayTicks, long periodTicks) {
         Consumer<Object> consumer = t -> { setTask(t); if (!cancelled) run(); };
         Object st = invokeAsync(plugin, consumer, delayTicks, periodTicks);
         if (st != null) setTask(st);
-        return new FoliaTaskWrapper(st);
+        return new FoliaTaskWrapper(plugin, false, st);
     }
 
     private BukkitTask scheduleEntity(Plugin plugin, Entity entity, long delay, long period) {
         Consumer<Object> consumer = t -> { setTask(t); if (!cancelled) run(); };
-        Object st = invokeEntity(plugin, entity, consumer, delay, period);
+        Object st = invokeEntity(plugin, entity, consumer, null, delay, period);
         if (st != null) setTask(st);
-        return new FoliaTaskWrapper(st);
+        return new FoliaTaskWrapper(plugin, true, st);
     }
 
     private BukkitTask scheduleRegion(Plugin plugin, Location location, long delay, long period) {
         Consumer<Object> consumer = t -> { setTask(t); if (!cancelled) run(); };
         Object st = invokeRegion(plugin, location, consumer, delay, period);
         if (st != null) setTask(st);
-        return new FoliaTaskWrapper(st);
+        return new FoliaTaskWrapper(plugin, true, st);
     }
 
     private static Object invokeGlobal(Plugin plugin, Object consumer, long delay, long period) {
@@ -299,21 +328,21 @@ public abstract class FoliaRunnable implements Runnable {
         invokeAsync(plugin, (Consumer<Object>) t -> task.run(), delayTicks, periodTicks);
     }
 
-    private static Object invokeEntity(Plugin plugin, Entity entity, Object consumer, long delay, long period) {
+    private static Object invokeEntity(Plugin plugin, Entity entity, Object consumer, Runnable retired, long delay, long period) {
         try {
             Object scheduler = entity.getClass().getMethod("getScheduler").invoke(entity);
             if (period >= 0) {
                 return scheduler.getClass()
                         .getMethod("runAtFixedRate", Plugin.class, Consumer.class, Runnable.class, long.class, long.class)
-                        .invoke(scheduler, plugin, consumer, (Runnable) null, delay, period);
+                        .invoke(scheduler, plugin, consumer, retired, delay, period);
             } else if (delay > 1) {
                 return scheduler.getClass()
                         .getMethod("runDelayed", Plugin.class, Consumer.class, Runnable.class, long.class)
-                        .invoke(scheduler, plugin, consumer, (Runnable) null, delay);
+                        .invoke(scheduler, plugin, consumer, retired, delay);
             } else {
                 return scheduler.getClass()
                         .getMethod("run", Plugin.class, Consumer.class, Runnable.class)
-                        .invoke(scheduler, plugin, consumer, (Runnable) null);
+                        .invoke(scheduler, plugin, consumer, retired);
             }
         } catch (Exception e) {
             plugin.getLogger().severe("[QualityArmory] Failed to schedule entity Folia task: " + e.getMessage());
@@ -321,8 +350,8 @@ public abstract class FoliaRunnable implements Runnable {
         }
     }
 
-    private static void invokeEntity(Plugin plugin, Entity entity, Runnable task, long delay, long period) {
-        invokeEntity(plugin, entity, (Consumer<Object>) t -> task.run(), delay, period);
+    private static void invokeEntity(Plugin plugin, Entity entity, Runnable task, Runnable retired, long delay, long period) {
+        invokeEntity(plugin, entity, (Consumer<Object>) t -> task.run(), retired, delay, period);
     }
 
     private static Object invokeRegion(Plugin plugin, Location location, Object consumer, long delay, long period) {
@@ -352,14 +381,18 @@ public abstract class FoliaRunnable implements Runnable {
 
     private final class FoliaTaskWrapper implements BukkitTask {
         private final Object scheduledTask;
+        private final Plugin owner;
+        private final boolean sync;
 
-        FoliaTaskWrapper(Object scheduledTask) {
+        FoliaTaskWrapper(Plugin owner, boolean sync, Object scheduledTask) {
+            this.owner = owner;
+            this.sync = sync;
             this.scheduledTask = scheduledTask;
         }
 
         @Override public int getTaskId() { return -1; }
-        @Override public Plugin getOwner() { return null; }
-        @Override public boolean isSync() { return true; }
+        @Override public Plugin getOwner() { return owner; }
+        @Override public boolean isSync() { return sync; }
 
         @Override
         public boolean isCancelled() {

@@ -1,8 +1,8 @@
 package me.zombie_striker.qg.guns.chargers;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -14,8 +14,8 @@ import me.zombie_striker.qg.guns.utils.WeaponSounds;
 
 public class BreakactionCharger implements ChargingHandler {
 
-	List<UUID> timeC = new ArrayList<>();
-	List<UUID> timeR = new ArrayList<>();
+	Set<UUID> timeC = ConcurrentHashMap.newKeySet();
+	Set<UUID> timeR = ConcurrentHashMap.newKeySet();
 
 	public BreakactionCharger() {
 		ChargingManager.add(this);

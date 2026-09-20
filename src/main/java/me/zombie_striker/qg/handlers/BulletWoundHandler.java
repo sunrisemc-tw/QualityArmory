@@ -1,8 +1,10 @@
 package me.zombie_striker.qg.handlers;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.cryptomorin.xseries.XPotion;
 import org.bukkit.Bukkit;
@@ -16,8 +18,8 @@ import me.zombie_striker.qg.QAMain;
 
 public class BulletWoundHandler {
 
-	public static HashMap<UUID, Double> bleedoutMultiplier = new HashMap<>();
-	public static HashMap<UUID, Double> bloodLevel = new HashMap<>();
+	public static Map<UUID, Double> bleedoutMultiplier = new ConcurrentHashMap<>();
+	public static Map<UUID, Double> bloodLevel = new ConcurrentHashMap<>();
 
 	public static BukkitTask task = null;
 
@@ -50,14 +52,17 @@ public class BulletWoundHandler {
 						}
 					}
 				}
-			}.runTaskTimerAsynchronously(QAMain.getInstance(), 0, 20);
+			}.runTaskTimer(QAMain.getInstance(), 0, 20);
 		}
 	}
 
 	private static void applyBleedEffect(Player online) {
 		if (!bleedoutMultiplier.containsKey(online.getUniqueId())) return;
-		if (!bloodLevel.containsKey(online.getUniqueId()))
-			bloodLevel.put(online.getUniqueId(), 0.0);
+		if (!bloodLevel.containsKey(online.getUniqueId())) {
+			// Wound state is gone (fully healed / cleared): drop the bleed-out instead of restarting from 0.
+			bleedoutMultiplier.remove(online.getUniqueId());
+			return;
+		}
 		double bleedMult = bleedoutMultiplier.get(online.getUniqueId());
 		double bloodlevel = bloodLevel.get(online.getUniqueId()) + bleedMult
 				+ QAMain.bulletWound_BloodIncreasePerSecond;

@@ -71,6 +71,7 @@ import org.bukkit.scoreboard.Team;
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 public class QAMain extends JavaPlugin {
@@ -90,10 +91,10 @@ public class QAMain extends JavaPlugin {
     public static Set<EntityType> avoidTypes = new HashSet<>();
     public static HashMap<UUID, Location> recoilHelperMovedLocation = new HashMap<>();
     public static ArrayList<MaterialStorage> expansionPacks = new ArrayList<>();
-    public static HashMap<UUID, List<GunRefillerRunnable>> reloadingTasks = new HashMap<>();
-    public static HashMap<UUID, Long> sentResourcepack = new HashMap<>();
-    public static ArrayList<UUID> resourcepackReq = new ArrayList<>();
-    public static List<UUID> resourcepackLoading = new ArrayList<>();
+    public static Map<UUID, List<GunRefillerRunnable>> reloadingTasks = new ConcurrentHashMap<>();
+    public static Map<UUID, Long> sentResourcepack = new ConcurrentHashMap<>();
+    public static Set<UUID> resourcepackReq = ConcurrentHashMap.newKeySet();
+    public static Set<UUID> resourcepackLoading = ConcurrentHashMap.newKeySet();
     public static List<Gunner> gunners = new ArrayList<>();
     public static List<String> namesToBypass = new ArrayList<>();
     public static List<Material> interactableBlocks = new ArrayList<>();
@@ -673,7 +674,7 @@ public class QAMain extends JavaPlugin {
                     } catch (Error | Exception catchy) {
                     }
                 }
-            }.runTaskTimerAsynchronously(this, 20, 15);
+            }.runTaskTimer(this, 20, 15);
         }
     }
 

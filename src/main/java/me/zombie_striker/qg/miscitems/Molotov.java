@@ -13,6 +13,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import me.zombie_striker.qg.util.FoliaRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.List;
 
@@ -35,56 +36,68 @@ public class Molotov extends Grenade {
 		thrower.getWorld().playSound(thrower.getLocation(), WeaponSounds.RELOAD_MAG_IN.getSoundName(), 2, 1);
 		final ThrowableHolder h = new ThrowableHolder(thrower.getUniqueId(), thrower, this);
 		h.setTimer(new FoliaRunnable() {
-
-			int k = 0;
-
 			@Override
 			public void run() {
-				try {
-					for(int i = 0; i < 8; i++) {
-						double xoffset = ((Math.random() * 2) - 1)*radius;
-						double zoffset = ((Math.random() * 2) - 1)*radius;
-						h.getHolder().getWorld().spawnParticle(Particle.FLAME,
-								h.getHolder().getLocation().clone().add(xoffset,0,zoffset), 0);
-					}
-					for(int i = 0; i < 4; i ++) {
-						//TODO: Check: This goes in three directions, and one stays still
-						h.getHolder().getWorld().spawnParticle(org.bukkit.Particle.LAVA,
-								h.getHolder().getLocation(), i);
-					}
-					h.getHolder().getWorld().playSound(h.getHolder().getLocation(), WeaponSounds.HISS.getSoundName(), 2f,
-							1f);
-				} catch (Error e3) {
-					h.getHolder().getWorld().playEffect(h.getHolder().getLocation(), Effect.valueOf("CLOUD"), 0);
-					h.getHolder().getWorld().playSound(h.getHolder().getLocation(), Sound.valueOf("EXPLODE"), 3, 0.7f);
+				Entity holderEntity = h.getHolder();
+				if (holderEntity == null) {
+					cancel();
+					return;
 				}
-				if(!(h.getHolder() instanceof Player)&& (h.getHolder().isOnGround() || h.getHolder().isInWater())) k++;
-				QAMain.DEBUG("Fireticks");
-				if (k == 40) {
-					if (h.getHolder() instanceof Item) {
-						Grenade.getGrenades().remove(h.getHolder());
-						h.getHolder().remove();
-					}
-					throwItems.remove(h.getHolder());
-					this.cancel();
-				} else {
-					for(Entity e : h.getHolder().getNearbyEntities(radius, radius, radius)) 
-						if(e instanceof LivingEntity) {
-							QAMain.DEBUG("Firedamage to "+e.getName());
-							try {
-								if (ProtectionHandler.canPvp(e.getLocation())) {
-									e.setFireTicks(20);
-								}
-							}catch (Error error){
-								e.setFireTicks(20);
-							}
-						}
-				}
+				FoliaRunnable.runEntityTask(QAMain.getInstance(), holderEntity,
+						() -> handleThrowableTick(h),
+						() -> {
+							throwItems.remove(holderEntity);
+							BukkitTask t = h.getTask();
+							if (t != null) t.cancel();
+						});
 			}
-		}.runTaskTimer(QAMain.getInstance(), thrower.getLocation().clone(), 5*20, 10));
+		}.runTaskTimer(QAMain.getInstance(), 5*20, 10));
 		throwItems.put(thrower, h);
 
 		return true;
+	}
+
+	private void handleThrowableTick(ThrowableHolder h) {
+		try {
+			for(int i = 0; i < 8; i++) {
+				double xoffset = ((Math.random() * 2) - 1)*radius;
+				double zoffset = ((Math.random() * 2) - 1)*radius;
+				h.getHolder().getWorld().spawnParticle(Particle.FLAME,
+						h.getHolder().getLocation().clone().add(xoffset,0,zoffset), 0);
+			}
+			for(int i = 0; i < 4; i ++) {
+				//TODO: Check: This goes in three directions, and one stays still
+				h.getHolder().getWorld().spawnParticle(org.bukkit.Particle.LAVA,
+						h.getHolder().getLocation(), i);
+			}
+			h.getHolder().getWorld().playSound(h.getHolder().getLocation(), WeaponSounds.HISS.getSoundName(), 2f,
+					1f);
+		} catch (Error e3) {
+			h.getHolder().getWorld().playEffect(h.getHolder().getLocation(), Effect.valueOf("CLOUD"), 0);
+			h.getHolder().getWorld().playSound(h.getHolder().getLocation(), Sound.valueOf("EXPLODE"), 3, 0.7f);
+		}
+		if(!(h.getHolder() instanceof Player)&& (h.getHolder().isOnGround() || h.getHolder().isInWater())) h.setTicks(h.getTicks() + 1);
+		QAMain.DEBUG("Fireticks");
+		if (h.getTicks() == 40) {
+			if (h.getHolder() instanceof Item) {
+				Grenade.getGrenades().remove(h.getHolder());
+				h.getHolder().remove();
+			}
+			throwItems.remove(h.getHolder());
+			if (h.getTask() != null) h.getTask().cancel();
+		} else {
+			for(Entity e : h.getHolder().getNearbyEntities(radius, radius, radius)) 
+				if(e instanceof LivingEntity) {
+					QAMain.DEBUG("Firedamage to "+e.getName());
+					try {
+						if (ProtectionHandler.canPvp(e.getLocation())) {
+							e.setFireTicks(20);
+						}
+					}catch (Error error){
+						e.setFireTicks(20);
+					}
+				}
+		}
 	}
 
 }

@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import me.zombie_striker.qg.util.FoliaRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import me.zombie_striker.qg.QAMain;
 import me.zombie_striker.customitemmanager.MaterialStorage;
@@ -40,41 +41,56 @@ public class Flashbang extends Grenade {
 		h.setTimer(new FoliaRunnable() {
 			@Override
 			public void run() {
-				try {
-					h.getHolder().getWorld().spawnParticle(XParticle.EXPLOSION_EMITTER.get(),
-							h.getHolder().getLocation(), 0);
-					h.getHolder().getWorld().playSound(h.getHolder().getLocation(), WeaponSounds.FLASHBANG.getSoundName(),
-							3f, 1f);
-				} catch (Error e3) {
-					h.getHolder().getWorld().playEffect(h.getHolder().getLocation(), Effect.valueOf("CLOUD"), 0);
-					h.getHolder().getWorld().playSound(h.getHolder().getLocation(), Sound.valueOf("EXPLODE"), 8, 0.7f);
+				Entity holderEntity = h.getHolder();
+				if (holderEntity == null) {
+					cancel();
+					return;
 				}
-				try {
-					for (Entity e : h.getHolder().getNearbyEntities(radius, radius, radius)) {
-						if (e instanceof LivingEntity) {
-							QAMain.DEBUG("Flashbaned "+e.getName());
-							((LivingEntity) e)
-									.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 10, 2));
-						}
-					}
-				} catch (Error e) {
-				}
-				if (h.getHolder() instanceof Player) {
-					QAMain.DEBUG("Blinded player");
-					((LivingEntity) h.getHolder())
-							.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 10, 2));
-					removeGrenade(((Player) h.getHolder()));
-				}
-				if (h.getHolder() instanceof Item) {
-					Grenade.getGrenades().remove(h.getHolder());
-					h.getHolder().remove();
-				}
-
-				throwItems.remove(h.getHolder());
+				FoliaRunnable.runEntityTask(QAMain.getInstance(), holderEntity,
+						() -> handleThrowableTick(h),
+						() -> {
+							throwItems.remove(holderEntity);
+							BukkitTask t = h.getTask();
+							if (t != null) t.cancel();
+						});
 			}
-		}.runTaskLater(QAMain.getInstance(), thrower.getLocation().clone(), 5 * 20));
+		}.runTaskLater(QAMain.getInstance(), 5 * 20));
 		throwItems.put(thrower, h);
 		return true;
+	}
+
+	private void handleThrowableTick(ThrowableHolder h) {
+		try {
+			h.getHolder().getWorld().spawnParticle(XParticle.EXPLOSION_EMITTER.get(),
+					h.getHolder().getLocation(), 0);
+			h.getHolder().getWorld().playSound(h.getHolder().getLocation(), WeaponSounds.FLASHBANG.getSoundName(),
+					3f, 1f);
+		} catch (Error e3) {
+			h.getHolder().getWorld().playEffect(h.getHolder().getLocation(), Effect.valueOf("CLOUD"), 0);
+			h.getHolder().getWorld().playSound(h.getHolder().getLocation(), Sound.valueOf("EXPLODE"), 8, 0.7f);
+		}
+		try {
+			for (Entity e : h.getHolder().getNearbyEntities(radius, radius, radius)) {
+				if (e instanceof LivingEntity) {
+					QAMain.DEBUG("Flashbaned "+e.getName());
+					((LivingEntity) e)
+							.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 10, 2));
+				}
+			}
+		} catch (Error e) {
+		}
+		if (h.getHolder() instanceof Player) {
+			QAMain.DEBUG("Blinded player");
+			((LivingEntity) h.getHolder())
+					.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 10, 2));
+			removeGrenade(((Player) h.getHolder()));
+		}
+		if (h.getHolder() instanceof Item) {
+			Grenade.getGrenades().remove(h.getHolder());
+			h.getHolder().remove();
+		}
+
+		throwItems.remove(h.getHolder());
 	}
 
 }

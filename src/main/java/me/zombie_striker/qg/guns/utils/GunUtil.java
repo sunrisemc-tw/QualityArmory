@@ -33,11 +33,12 @@ import org.jetbrains.annotations.NotNull;
 import ru.beykerykt.minecraft.lightapi.common.LightAPI;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class GunUtil {
 
-	public static HashMap<UUID, BukkitTask> rapidfireshooters = new HashMap<>();
+	public static Map<UUID, BukkitTask> rapidfireshooters = new ConcurrentHashMap<>();
 	public static HashMap<UUID, Double> highRecoilCounter = new HashMap<>();
 	protected static HashMap<UUID, Location> AF_locs = new HashMap<>();
 	protected static HashMap<UUID, BukkitTask> AF_tasks = new HashMap<>();
@@ -419,18 +420,21 @@ public class GunUtil {
 
 				if (QAMain.regenDestructableBlocksAfter > 0) {
 					QAMain.DEBUG("Scheduling replacement of " + regenBlocks.size() + " blocks");
-					final Location regenLoc = start.clone();
 					new FoliaRunnable() {
 						@Override
 						public void run() {
 							QAMain.DEBUG("Replacing " + regenBlocks.size() + " blocks");
 
 							for (Block l : regenBlocks.keySet()) {
-								regenBlocks.get(l).place(l.getLocation());
-								CoreProtectHook.logPlace(l,p);
+								final Block block = l;
+								final BlockRegenData data = regenBlocks.get(l);
+								FoliaRunnable.runRegionTask(QAMain.getInstance(), block.getLocation(), () -> {
+									data.place(block.getLocation());
+									CoreProtectHook.logPlace(block, p);
+								});
 							}
 						}
-					}.runTaskLater(QAMain.getInstance(), regenLoc, QAMain.regenDestructableBlocksAfter * 20L);
+					}.runTaskLater(QAMain.getInstance(), QAMain.regenDestructableBlocksAfter * 20L);
 				}
 			}
 

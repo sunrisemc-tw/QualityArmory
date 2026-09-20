@@ -1,8 +1,8 @@
 package me.zombie_striker.qg.guns.reloaders;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import me.zombie_striker.qg.api.QualityArmory;
 import org.bukkit.Sound;
@@ -16,7 +16,7 @@ import me.zombie_striker.qg.guns.utils.WeaponSounds;
 
 public class SingleBulletReloader implements ReloadingHandler {
 
-	List<UUID> timeR = new ArrayList<>();
+	Set<UUID> timeR = ConcurrentHashMap.newKeySet();
 
 	public SingleBulletReloader() {
 		ReloadingManager.add(this);

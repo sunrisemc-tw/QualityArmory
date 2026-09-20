@@ -28,7 +28,7 @@ public class ParticleHandlers {
 		// TODO: Do lights n stuff
 		try {
 			if (Bukkit.getPluginManager().getPlugin("LightAPI") != null) {
-				final Location loc2 = loc;
+				final Location loc2 = loc.clone();
 				LightAPI.get().setLightLevel(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), 15);
 				new FoliaRunnable() {
 					@Override
@@ -87,7 +87,7 @@ public class ParticleHandlers {
 
 		try {
 			if (Bukkit.getPluginManager().getPlugin("LightAPI") != null) {
-				final Location loc2 = loc;
+				final Location loc2 = loc.clone();
 				LightAPI.get().setLightLevel(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), 15);
 				new FoliaRunnable() {
 

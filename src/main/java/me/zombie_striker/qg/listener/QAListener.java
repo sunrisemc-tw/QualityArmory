@@ -46,11 +46,13 @@ import org.bukkit.scoreboard.Scoreboard;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class QAListener implements Listener {
-	private final List<UUID> ignoreClick = new ArrayList<>();
-	private final List<UUID> ignoreDropReload = new ArrayList<>();
+	private final Set<UUID> ignoreClick = ConcurrentHashMap.newKeySet();
+	private final Set<UUID> ignoreDropReload = ConcurrentHashMap.newKeySet();
 
 	@SuppressWarnings("deprecation")
 	@EventHandler
@@ -1178,4 +1180,3 @@ public class QAListener implements Listener {
 		QAMain.DEBUG(s);
 	}
 }
-

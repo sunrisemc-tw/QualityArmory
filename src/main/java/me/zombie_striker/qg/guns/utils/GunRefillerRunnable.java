@@ -18,10 +18,11 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class GunRefillerRunnable {
 
-    private static List<GunRefillerRunnable> allGunRefillers = new ArrayList<>();
+    private static List<GunRefillerRunnable> allGunRefillers = new CopyOnWriteArrayList<>();
 
     public static boolean hasItemReloaded(Player reloader, ItemStack is) {
         for (GunRefillerRunnable s : allGunRefillers) {

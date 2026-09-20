@@ -6,9 +6,9 @@ import me.zombie_striker.qg.guns.utils.WeaponSounds;
 import org.bukkit.entity.Player;
 import me.zombie_striker.qg.util.FoliaRunnable;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class M1GarandReloader implements ReloadingHandler{
 
@@ -17,7 +17,7 @@ public class M1GarandReloader implements ReloadingHandler{
 		ReloadingManager.add(this);
 	}
 
-	List<UUID> timeR = new ArrayList<>();
+	Set<UUID> timeR = ConcurrentHashMap.newKeySet();
 	@Override
 	public boolean isReloading(Player player) {
 		return timeR.contains(player.getUniqueId());

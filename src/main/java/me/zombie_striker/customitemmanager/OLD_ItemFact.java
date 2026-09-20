@@ -33,7 +33,7 @@ public class OLD_ItemFact {
 			public void run() {
 				removeOutOfAmmoToDisplayname(g, player, k, slot);
 			}
-		}.runTaskLater(QAMain.getInstance(), 20 * 3);
+		}.runTaskLater(QAMain.getInstance(), player, 20 * 3);
 	}
 
 	public static void removeOutOfAmmoToDisplayname(final Gun g, final Player player, ItemStack is, final int slot) {

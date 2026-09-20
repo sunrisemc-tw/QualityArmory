@@ -24,7 +24,8 @@ public class Update19resourcepackhandler implements Listener {
 
         if (event.getStatus() == PlayerResourcePackStatusEvent.Status.DECLINED) {
             if (QAMain.kickIfDeniedRequest) {
-                FoliaRunnable.runTask(QAMain.getInstance(), () -> event.getPlayer().kickPlayer(QAMain.S_KICKED_FOR_RESOURCEPACK));
+                final Player player = event.getPlayer();
+                FoliaRunnable.runEntityTask(QAMain.getInstance(), player, () -> player.kickPlayer(QAMain.S_KICKED_FOR_RESOURCEPACK));
             }
 
             // Add to the list, so it doesn't keep spamming the title
