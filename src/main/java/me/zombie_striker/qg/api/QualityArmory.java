@@ -151,7 +151,7 @@ public class QualityArmory {
 
 						}
 					}
-				}.runTaskLater(QAMain.getInstance(), 20 * (warning ? 1 : 5));
+																}.runTaskLater(QAMain.getInstance(), 0);
 			}
 		}.runTaskLater(QAMain.getInstance(), (long) (20 * QAMain.secondsTilSend));
 	}
